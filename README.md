@@ -1,12 +1,10 @@
-package leiorm
+# LEIORM
 
-import (
-	"fmt"
-	"testing"
+The ORM tool for redis developed with golang
 
-	"github.com/gomodule/redigo/redis"
-)
+## Feature & Example usage
 
+```golang
 type Attr struct {
 	Type1 int64 `leiorm:"type1"`
 	Val1  int64 `leiorm:"val1"`
@@ -112,14 +110,8 @@ type Role struct {
 	Ks      map[string]*Knight `leiorm:"ks"`
 }
 
-var url = "redis://:@localhost:6379/10"
-
-func TestSave(t *testing.T) {
-	rd, err := redis.DialURL(url)
-	if err != nil {
-		fmt.Printf("can not connect to %s: %+v", url, err)
-		return
-	}
+func TestLoad() {
+	rd, _ := redis.DialURL(url)
 
 	var role = Role{
 		Id:     10010321,
@@ -176,81 +168,48 @@ func TestSave(t *testing.T) {
 	SaveModel(rd, map[int][]int{1: {333, 444}, 2: {555, 666}}, "testmaparr")
 }
 
-func TestLoad(t *testing.T) {
-	rd, err := redis.DialURL(url)
-	if err != nil {
-		fmt.Printf("can not connect to %s: %+v", url, err)
-		return
-	}
+func TestLoad() {
+	rd, _ := redis.DialURL(url)
 
-	r := &Role{Id: 10010321}
+	r := &Role{}
+	LoadModel(rd, r, "Role:1001")
 
-	fmt.Println("======================")
-
-	LoadModel(rd, r, "Role:10010012345")
-	fmt.Printf("%+v\n", r)
-	fmt.Println("=======>items:")
-	for _, item := range r.Items {
-		fmt.Println(item)
-	}
-	fmt.Println("=======>items2:")
-	for _, item := range r.Items2 {
-		fmt.Println(item)
-	}
-	fmt.Println("=======>equip:")
-	fmt.Println(r.Equip)
-	fmt.Println("=======>equip2:")
-	fmt.Println(r.Equip2)
-	fmt.Println("=======>knights:")
-	for k, v := range r.Knights {
-		fmt.Print(k)
-		fmt.Println(v)
-	}
-	fmt.Println("=======>ks:")
-	for k, v := range r.Ks {
-		fmt.Print(k)
-		fmt.Println(v)
-	}
-	fmt.Println("===========================================")
 	var b bool
 	LoadModel(rd, &b, "testbooltrue")
-	fmt.Printf("b=%v\n", b)
 	LoadModel(rd, &b, "testboolfalse")
-	fmt.Printf("b=%v\n", b)
 
 	var s string
 	LoadModel(rd, &s, "teststr")
-	fmt.Printf("s=%v\n", s)
 
 	var f float32
 	LoadModel(rd, &f, "testpi")
-	fmt.Printf("f=%v\n", f)
 
 	var slc []int
 	LoadModel(rd, &slc, "testslc")
-	fmt.Printf("slc=%v\n", slc)
 
 	var arr [2]int
 	LoadModel(rd, &arr, "testarr")
-	fmt.Printf("arr=%v\n", arr)
 
 	var slcarr [][2]int
 	LoadModel(rd, &slcarr, "testslcarr")
-	fmt.Printf("slcarr=%v\n", slcarr)
 
 	var arrslc [2][]int
 	LoadModel(rd, &arrslc, "testarrslc")
-	fmt.Printf("arrslc=%v\n", arrslc)
 
 	var arrarr [2][3]int
 	LoadModel(rd, &arrarr, "testarrarr")
-	fmt.Printf("arrarr=%v\n", arrarr)
 
 	var m map[int]string
 	LoadModel(rd, &m, "testmap")
-	fmt.Printf("m=%v\n", m)
 
 	var maparr map[int][]int
 	LoadModel(rd, &maparr, "testmaparr")
-	fmt.Printf("maparr=%v\n", maparr)
 }
+```
+
+## Unsupported type
+* Arrays or slices with more than 2 dimensions
+* Multilevel pointer
+* Complex nested types, such as map[&struct]map[int]struct
+
+Note that, trying to use unsupported type will lead to undefined results.
