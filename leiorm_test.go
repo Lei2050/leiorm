@@ -1,10 +1,12 @@
-package leiorm
+package leiorm_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/gomodule/redigo/redis"
+
+	. "leiorm"
 )
 
 type Attr struct {
