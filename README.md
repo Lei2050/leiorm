@@ -110,7 +110,7 @@ type Role struct {
 	Ks      map[string]*Knight `leiorm:"ks"`
 }
 
-func TestLoad() {
+func TestSave() {
 	rd, _ := redis.DialURL(url)
 
 	var role = Role{
