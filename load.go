@@ -159,11 +159,10 @@ func convertAssignFloat(d reflect.Value, s interface{}) bool {
 	return true
 }
 
-func convertAssignArray(d reflect.Value, s interface{}, sep string) bool {
+func convertAssignArray(d reflect.Value, s interface{}, sep string) error {
 	str, ok := s.(string)
 	if !ok {
-		fmt.Printf("convertAssignArray can't convert to string:%v\n", s)
-		return false
+		return fmt.Errorf("convertAssignArray: can't convert to string:%v", s)
 	}
 
 	elemType := d.Type().Elem()
@@ -190,14 +189,13 @@ func convertAssignArray(d reflect.Value, s interface{}, sep string) bool {
 		}
 	}
 
-	return true
+	return nil
 }
 
-func convertAssignSlice(d reflect.Value, s interface{}, sep string) bool {
+func convertAssignSlice(d reflect.Value, s interface{}, sep string) error {
 	str, ok := s.(string)
 	if !ok {
-		fmt.Printf("convertAssignSlice can't convert to string:%v\n", s)
-		return false
+		return fmt.Errorf("convertAssignSlice can't convert to string:%v", s)
 	}
 
 	elemType := d.Type().Elem()
@@ -222,7 +220,7 @@ func convertAssignSlice(d reflect.Value, s interface{}, sep string) bool {
 	}
 	d.Set(slc)
 
-	return true
+	return nil
 }
 
 func convertAssignString(d reflect.Value, s interface{}) bool {
@@ -280,16 +278,15 @@ func fromString(d reflect.Value, s string) reflect.Value {
 	case reflect.Slice:
 	case reflect.Map:
 	case reflect.Struct:
-	default: //其他类型不予支持
+	default: //
 	}
 	return d
 }
 
-func convertAssignMap(d reflect.Value, s interface{}) bool {
+func convertAssignMap(d reflect.Value, s interface{}) error {
 	str, ok := s.(string)
 	if !ok {
-		fmt.Printf("convertAssignMap can't convert to string:%v\n", s)
-		return false
+		return fmt.Errorf("convertAssignMap can't convert to string:%v", s)
 	}
 
 	elemType := d.Type().Elem()
@@ -337,23 +334,22 @@ func convertAssignMap(d reflect.Value, s interface{}) bool {
 	}
 	d.Set(m)
 
-	return true
+	return nil
 }
 
-func loadProcessArrayBase(rd RedisClienter, v reflect.Value, key string) bool {
+func loadProcessArrayBase(rd RedisClienter, v reflect.Value, key string) error {
 	str, err := redis.String(rd.Do("GET", key))
 	if err != nil {
-		fmt.Printf("GET %v failed: %v\n", key, err)
-		return false
+		return err
 	}
 	if len(str) <= 0 {
-		return true
+		return nil
 	}
 
 	return convertAssignArray(v, str, arrJoinLevel1)
 }
 
-func loadProcessArray(rd RedisClienter, v reflect.Value, key string) bool {
+func loadProcessArray(rd RedisClienter, v reflect.Value, key string) error {
 	elemIsPointer := false
 	elemType := v.Type().Elem()
 	if elemType.Kind() == reflect.Ptr {
@@ -365,8 +361,7 @@ func loadProcessArray(rd RedisClienter, v reflect.Value, key string) bool {
 
 	ids, err := redis.Strings(rd.Do("SMEMBERS", kkey))
 	if err != nil {
-		fmt.Println("smembers skey and Ints failed.")
-		return false
+		return err
 	}
 
 	for i := 0; i < v.Len() && i < len(ids); i++ {
@@ -380,23 +375,22 @@ func loadProcessArray(rd RedisClienter, v reflect.Value, key string) bool {
 		}
 	}
 
-	return true
+	return nil
 }
 
-func loadProcessSliceBase(rd RedisClienter, v reflect.Value, key string) bool {
+func loadProcessSliceBase(rd RedisClienter, v reflect.Value, key string) error {
 	str, err := redis.String(rd.Do("GET", key))
 	if err != nil {
-		fmt.Printf("GET %v failed: %v\n", key, err)
-		return false
+		return err
 	}
 	if len(str) <= 0 {
-		return true
+		return nil
 	}
 
 	return convertAssignSlice(v, str, arrJoinLevel1)
 }
 
-func loadProcessSlice(rd RedisClienter, v reflect.Value, key string) bool {
+func loadProcessSlice(rd RedisClienter, v reflect.Value, key string) error {
 	elemIsPointer := false
 	elemType := v.Type().Elem()
 	if elemType.Kind() == reflect.Ptr {
@@ -408,8 +402,7 @@ func loadProcessSlice(rd RedisClienter, v reflect.Value, key string) bool {
 
 	ids, err := redis.Strings(rd.Do("SMEMBERS", kkey))
 	if err != nil {
-		fmt.Println("smembers skey and Ints failed.")
-		return false
+		return err
 	}
 
 	slc := v
@@ -425,18 +418,16 @@ func loadProcessSlice(rd RedisClienter, v reflect.Value, key string) bool {
 	}
 	v.Set(slc)
 
-	return true
+	return nil
 }
 
-func loadProcessMapBase(rd RedisClienter, v reflect.Value, key string) bool {
+func loadProcessMapBase(rd RedisClienter, v reflect.Value, key string) error {
 	str, err := redis.String(rd.Do("GET", key))
 	if err != nil {
-		fmt.Printf("GET %v failed: %v\n", key, err)
-		return false
+		return err
 	}
 	if len(str) <= 0 {
-		fmt.Println("loadProcessMapBase empty")
-		return true
+		return nil
 	}
 
 	if v.IsZero() {
@@ -446,7 +437,7 @@ func loadProcessMapBase(rd RedisClienter, v reflect.Value, key string) bool {
 	return convertAssignMap(v, str)
 }
 
-func loadProcessMap(rd RedisClienter, v reflect.Value, key string) bool {
+func loadProcessMap(rd RedisClienter, v reflect.Value, key string) error {
 	elemIsPointer := false
 	elemType := v.Type().Elem()
 	if elemType.Kind() == reflect.Ptr {
@@ -458,8 +449,7 @@ func loadProcessMap(rd RedisClienter, v reflect.Value, key string) bool {
 
 	ids, err := redis.Strings(rd.Do("SMEMBERS", kkey))
 	if err != nil {
-		fmt.Println("smembers skey and Ints failed.")
-		return false
+		return err
 	}
 
 	if v.IsZero() {
@@ -478,10 +468,10 @@ func loadProcessMap(rd RedisClienter, v reflect.Value, key string) bool {
 		}
 	}
 
-	return true
+	return nil
 }
 
-func loadProcessStruct(rd RedisClienter, v reflect.Value, key string) bool {
+func loadProcessStruct(rd RedisClienter, v reflect.Value, key string) error {
 	//typ := reflect.TypeOf(v)
 	//value := reflect.ValueOf(v)
 	typ := v.Type()
@@ -490,8 +480,7 @@ func loadProcessStruct(rd RedisClienter, v reflect.Value, key string) bool {
 
 	src, err := redis.StringMap(rd.Do("HGETALL", key))
 	if err != nil {
-		fmt.Println(err)
-		return false
+		return err
 	}
 
 	for i := 0; i < num; i++ {
@@ -512,8 +501,7 @@ func loadProcessStruct(rd RedisClienter, v reflect.Value, key string) bool {
 
 		if vfield.Kind() == reflect.Ptr {
 			if !vfield.CanInterface() {
-				fmt.Println("can't interface")
-				return false
+				return fmt.Errorf("loadProcessStruct: can't interface")
 			}
 			// Already a reflect.Ptr
 			if vfield.IsNil() {
@@ -576,64 +564,58 @@ func loadProcessStruct(rd RedisClienter, v reflect.Value, key string) bool {
 		}
 	}
 
-	return true
+	return nil
 }
 
-func loadProcessBool(rd RedisClienter, v reflect.Value, key interface{}) bool {
+func loadProcessBool(rd RedisClienter, v reflect.Value, key interface{}) error {
 	b, err := redis.Bool(rd.Do("GET", key))
 	if err != nil {
-		fmt.Printf("GET %v failed: %+v\n", key, err)
-		return false
+		return err
 	}
 	v.SetBool(b)
-	return true
+	return nil
 }
 
-func loadProcessInt(rd RedisClienter, v reflect.Value, key interface{}) bool {
+func loadProcessInt(rd RedisClienter, v reflect.Value, key interface{}) error {
 	b, err := redis.Int64(rd.Do("GET", key))
 	if err != nil {
-		fmt.Printf("GET %v failed: %+v\n", key, err)
-		return false
+		return err
 	}
 	v.SetInt(b)
-	return true
+	return nil
 }
 
-func loadProcessUint(rd RedisClienter, v reflect.Value, key interface{}) bool {
+func loadProcessUint(rd RedisClienter, v reflect.Value, key interface{}) error {
 	b, err := redis.Uint64(rd.Do("GET", key))
 	if err != nil {
-		fmt.Printf("GET %v failed: %+v\n", key, err)
-		return false
+		return err
 	}
 	v.SetUint(b)
-	return true
+	return nil
 }
 
-func loadProcessFloat(rd RedisClienter, v reflect.Value, key interface{}) bool {
+func loadProcessFloat(rd RedisClienter, v reflect.Value, key interface{}) error {
 	b, err := redis.Float64(rd.Do("GET", key))
 	if err != nil {
-		fmt.Printf("GET %v failed: %+v\n", key, err)
-		return false
+		return err
 	}
 	v.SetFloat(b)
-	return true
+	return nil
 }
 
-func loadProcessString(rd RedisClienter, v reflect.Value, key interface{}) bool {
+func loadProcessString(rd RedisClienter, v reflect.Value, key interface{}) error {
 	b, err := redis.String(rd.Do("GET", key))
 	if err != nil {
-		fmt.Printf("GET %v failed: %+v\n", key, err)
-		return false
+		return err
 	}
 	v.SetString(b)
-	return true
+	return nil
 }
 
-func LoadModel(rd RedisClienter, ider interface{}, skey interface{}) bool {
+func LoadModel(rd RedisClienter, ider interface{}, skey interface{}) error {
 	value := reflect.ValueOf(ider)
 	for value.Type().Kind() != reflect.Ptr {
-		fmt.Println("must be a pointer of struct")
-		return false
+		return fmt.Errorf("must be a pointer of struct")
 	}
 	value = value.Elem()
 
@@ -676,7 +658,7 @@ func LoadModel(rd RedisClienter, ider interface{}, skey interface{}) bool {
 		case SaveTypeStruct:
 			return loadProcessMap(rd, value, key)
 		default:
-			return false
+			return fmt.Errorf("unsupported type")
 		}
 
 	////
@@ -688,5 +670,5 @@ func LoadModel(rd RedisClienter, ider interface{}, skey interface{}) bool {
 	default:
 	}
 
-	return false
+	return fmt.Errorf("unsupported type")
 }
