@@ -31,3 +31,11 @@ type RedisClienter interface {
 	// Receive receives a single reply from the Redis server
 	Receive() (reply interface{}, err error)
 }
+
+func DoRedisCommands(rd RedisClienter, rcs RedisCommands) {
+	for _, rc := range rcs {
+		rd.Send(rc.Cmd, rc.Args...)
+		//rd.Do(rc.Cmd, rc.Args...)
+	}
+	rd.Flush()
+}

@@ -294,11 +294,7 @@ func SaveModel(rd RedisClienter, ider interface{}, skey interface{}) error {
 		return err
 	}
 
-	for _, rc := range rcs {
-		rd.Send(rc.Cmd, rc.Args...)
-		//rd.Do(rc.Cmd, rc.Args...)
-	}
-	rd.Flush()
+	DoRedisCommands(rd, rcs)
 
 	return nil
 }
