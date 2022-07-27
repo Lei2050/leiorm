@@ -213,14 +213,9 @@ func saveProcessSimple(v interface{}, key interface{}) (rcs RedisCommands) {
 	return rcs
 }
 
-/*
-	Bool Int Int8 Int16 Int32 Int64 Uint Uint8 Uint16 Uint32 Uint64
-	Uintptr Float32 Float64 Complex64 Complex128 Array Chan Func
-	Interface Map Ptr Slice String Struct UnsafePointer
-*/
-func SaveModel(rd RedisClienter, ider interface{}, skey interface{}) error {
+func SaveModelAsCommands(ider interface{}, skey interface{}) (RedisCommands, error) {
 	if ider == nil {
-		return fmt.Errorf("model is nil")
+		return nil, fmt.Errorf("model is nil")
 	}
 	var key string
 	if skey != nil {
@@ -237,14 +232,14 @@ func SaveModel(rd RedisClienter, ider interface{}, skey interface{}) error {
 	switch value.Kind() {
 	case reflect.Bool:
 		if len(key) == 0 {
-			return fmt.Errorf("must specify a key for saving value of bool type")
+			return nil, fmt.Errorf("must specify a key for saving value of bool type")
 		}
 		rcs = saveProcessBool(value.Bool(), key)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64, reflect.String:
 		if len(key) == 0 {
-			return fmt.Errorf("must specify a key for saving value of number type or string")
+			return nil, fmt.Errorf("must specify a key for saving value of number type or string")
 		}
 		rcs = saveProcessSimple(value.Interface(), key)
 	case reflect.Struct:
@@ -258,7 +253,7 @@ func SaveModel(rd RedisClienter, ider interface{}, skey interface{}) error {
 		rcs = saveProcessStruct(value, key)
 	case reflect.Array, reflect.Slice:
 		if len(key) == 0 {
-			return fmt.Errorf("must specify a key for saving value of array or slice")
+			return nil, fmt.Errorf("must specify a key for saving value of array or slice")
 		}
 		switch getSaveType(value.Type().Elem()) {
 		case SaveTypeBase, SaveTypeBaseArray:
@@ -268,7 +263,7 @@ func SaveModel(rd RedisClienter, ider interface{}, skey interface{}) error {
 		}
 	case reflect.Map:
 		if len(key) == 0 {
-			return fmt.Errorf("must specify a key for saving value of map type")
+			return nil, fmt.Errorf("must specify a key for saving value of map type")
 		}
 		switch getSaveType(value.Type()) {
 		case SaveTypeBaseMap:
@@ -276,7 +271,7 @@ func SaveModel(rd RedisClienter, ider interface{}, skey interface{}) error {
 		case SaveTypeStruct:
 			rcs = saveProcessMap(value, key)
 		default:
-			return fmt.Errorf("unsupported type")
+			return nil, fmt.Errorf("unsupported type")
 		}
 
 	////
@@ -287,7 +282,16 @@ func SaveModel(rd RedisClienter, ider interface{}, skey interface{}) error {
 	//case reflect.UnsafePointer:
 
 	default:
-		return fmt.Errorf("unsupported type")
+		return nil, fmt.Errorf("unsupported type")
+	}
+
+	return rcs, nil
+}
+
+func SaveModel(rd RedisClienter, ider interface{}, skey interface{}) error {
+	rcs, err := SaveModelAsCommands(ider, skey)
+	if err != nil {
+		return err
 	}
 
 	for _, rc := range rcs {
