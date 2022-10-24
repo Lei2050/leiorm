@@ -289,9 +289,14 @@ func convertAssignMap(d reflect.Value, s interface{}) error {
 		return fmt.Errorf("convertAssignMap can't convert to string:%v", s)
 	}
 
+	m := reflect.MakeMap(d.Type())
+	if str == "" {
+		d.Set(m)
+		return nil
+	}
+
 	elemType := d.Type().Elem()
 	strs := strings.Split(str, mapJoinLevel1)
-	m := reflect.MakeMap(d.Type())
 	if elemType.Kind() == reflect.Array {
 		for i := range strs {
 			ss := strings.Split(strs[i], mapJoinLevel2)
@@ -320,7 +325,7 @@ func convertAssignMap(d reflect.Value, s interface{}) error {
 		}
 	} else {
 		for i := range strs {
-			ss := strings.Split(strs[i], ":")
+			ss := strings.Split(strs[i], mapJoinLevel2)
 			if len(ss) != 2 {
 				fmt.Printf("warning: != 2, %s\n", strs[i])
 				continue
